@@ -13,294 +13,63 @@
 // @license GnuGPL 3.0
 // ==/UserScript==
 
-/*
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- */
-
 (function() {
     'use strict';
     GM_addStyle(`
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --success-color: #27ae60;
-            --danger-color: #e74c3c;
-            --background-color: #ecf0f1;
-            --text-color: #2c3e50;
-            --border-radius: 10px;
-            --box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            --transition: all 0.3s ease;
-        }
-        body {
-            color: var(--text-color);
-            background-color: var(--background-color);
-        }
-        #kanbanContainer {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 800px;
-            max-width: 90vw;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            max-height: 90vh;
-            cursor: move;
-        }
-        .kanban-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: var(--primary-color);
-            color: white;
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-        }
-        .kanban-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        .kanban-controls {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        .control-button {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: var(--transition);
-        }
-        .control-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        .kanban-body {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            padding: 1.5rem;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-        .kanban-column {
-            background: var(--background-color);
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            min-height: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .column-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--primary-color);
-        }
-        .add-task-button {
-            padding: 0.5rem 1rem;
-            background: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .add-task-button:hover {
-            background: #2980b9;
-        }
-        .kanban-task {
-            background: white;
-            padding: 1rem;
-            border-radius: 6px;
-            box-shadow: var(--box-shadow);
-            cursor: grab;
-            position: relative;
-            transition: var(--transition);
-            border-left: 4px solid transparent;
-        }
-        .kanban-task.dragging {
-            opacity: 0.5;
-            transform: rotate(3deg);
-        }
-        .task-content {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .task-priority {
-            font-size: 0.8em;
-            padding: 0.2em 0.5em;
-            border-radius: 4px;
-            align-self: flex-start;
-        }
-        .priority-high {
-            border-color: #e74c3c;
-            background: #f9e2e2;
-        }
-        .priority-medium {
-            border-color: #f1c40f;
-            background: #fcf3cf;
-        }
-        .priority-low {
-            border-color: #2ecc71;
-            background: #e8f6ee;
-        }
-        .delete-task {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            cursor: pointer;
-            opacity: 0;
-            transition: var(--transition);
-            color: var(--danger-color);
-        }
-        .kanban-task:hover .delete-task {
-            opacity: 1;
-        }
-        #toggleKanban {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            padding: 1rem 1.5rem;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: var(--box-shadow);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            z-index: 9999;
-        }
-        .language-selector {
-            position: relative;
-        }
-        .language-menu {
-            position: absolute;
-            right: 0;
-            top: 100%;
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            padding: 0.5rem;
-            min-width: 150px;
-            display: none;
-            z-index: 10000;
-            border: 1px solid var(--primary-color); /* Ajout d'une bordure */
-        }
-        .language-option {
-            padding: 0.5rem;
-            cursor: pointer;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .language-option:hover {
-            background: var(--background-color);
-        }
-        .size-button {
-            padding: 0.5rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .size-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+        :root { --primary-color: #2c3e50; --secondary-color: #3498db; --success-color: #27ae60; --danger-color: #e74c3c; --background-color: #ecf0f1; --text-color: #2c3e50; --border-radius: 10px; --box-shadow: 0 4px 6px rgba(0,0,0,0.1); --transition: all 0.3s ease; }
+        body { color: var(--text-color); background-color: var(--background-color); }
+        #kanbanContainer { position: fixed; bottom: 30px; right: 30px; width: 800px; max-width: 90vw; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); font-family: 'Segoe UI', system-ui, sans-serif; z-index: 10000; display: none; flex-direction: column; max-height: 90vh; cursor: move; }
+        .kanban-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--primary-color); color: white; border-radius: var(--border-radius) var(--border-radius) 0 0; }
+        .kanban-title { font-size: 1.5rem; font-weight: 600; }
+        .kanban-controls { display: flex; gap: 0.5rem; align-items: center; }
+        .control-button { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: white; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition); }
+        .control-button:hover { background: rgba(255, 255, 255, 0.2); }
+        .kanban-body { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+        .kanban-column { background: var(--background-color); border-radius: var(--border-radius); padding: 1rem; min-height: 400px; display: flex; flex-direction: column; gap: 1rem; }
+        .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--primary-color); }
+        .add-task-button { padding: 0.5rem 1rem; background: var(--secondary-color); color: white; border: none; border-radius: 6px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.5rem; }
+        .add-task-button:hover { background: #2980b9; }
+        .kanban-task { background: white; padding: 1rem; border-radius: 6px; box-shadow: var(--box-shadow); cursor: grab; position: relative; transition: var(--transition); border-left: 4px solid transparent; }
+        .kanban-task.dragging { opacity: 0.5; transform: rotate(3deg); }
+        .task-content { display: flex; flex-direction: column; gap: 0.5rem; }
+        .task-priority { font-size: 0.8em; padding: 0.2em 0.5em; border-radius: 4px; align-self: flex-start; }
+        .priority-high { border-color: #e74c3c; background: #f9e2e2; }
+        .priority-medium { border-color: #f1c40f; background: #fcf3cf; }
+        .priority-low { border-color: #2ecc71; background: #e8f6ee; }
+        .delete-task { position: absolute; top: 0.5rem; right: 0.5rem; cursor: pointer; opacity: 0; transition: var(--transition); color: var(--danger-color); }
+        .kanban-task:hover .delete-task { opacity: 1; }
+        #toggleKanban { position: fixed; bottom: 30px; right: 30px; padding: 1rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: var(--box-shadow); display: flex; align-items: center; gap: 0.5rem; z-index: 9999; }
+        .language-selector { position: relative; }
+        .language-menu { position: absolute; right: 0; top: 100%; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); padding: 0.5rem; min-width: 150px; display: none; z-index: 10000; border: 1px solid var(--primary-color); }
+        .language-option { padding: 0.5rem; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 0.5rem; }
+        .language-option:hover { background: var(--background-color); }
+        .size-button { padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: white; display: flex; align-items: center; gap: 0.5rem; }
+        .size-button:hover { background: rgba(255, 255, 255, 0.2); }
     `);
 
     const translations = {
-        en: {
-            title: "Kanban Board",
-            todo: "To Do",
-            inProgress: "In Progress",
-            done: "Done",
-            addTask: "Add Task",
-            export: "Export",
-            import: "Import",
-            language: "Language",
-            delete: "Delete",
-            confirmDelete: "Delete this task?",
-            priority: "Priority",
-            high: "High",
-            medium: "Medium",
-            low: "Low",
-            cancel: "Cancel",
-            save: "Save",
-            resetConfirm: "Reset all tasks?",
-            importError: "Invalid file format"
-        },
-        fr: {
-            title: "Tableau Kanban",
-            todo: "À Faire",
-            inProgress: "En Cours",
-            done: "Terminé",
-            addTask: "Ajouter Tâche",
-            export: "Exporter",
-            import: "Importer",
-            language: "Langue",
-            delete: "Supprimer",
-            confirmDelete: "Supprimer cette tâche ?",
-            priority: "Priorité",
-            high: "Haute",
-            medium: "Moyenne",
-            low: "Basse",
-            cancel: "Annuler",
-            save: "Enregistrer",
-            resetConfirm: "Réinitialiser toutes les tâches ?",
-            importError: "Format de fichier invalide"
-        },
-        // Ajoutez d'autres traductions ici...
+        en: { title: "Kanban Board", todo: "To Do", inProgress: "In Progress", done: "Done", addTask: "Add Task", export: "Export", import: "Import", language: "Language", delete: "Delete", confirmDelete: "Delete this task?", priority: "Priority", high: "High", medium: "Medium", low: "Low", cancel: "Cancel", save: "Save", resetConfirm: "Reset all tasks?", importError: "Invalid file format" },
+        fr: { title: "Tableau Kanban", todo: "À Faire", inProgress: "En Cours", done: "Terminé", addTask: "Ajouter Tâche", export: "Exporter", import: "Importer", language: "Langue", delete: "Supprimer", confirmDelete: "Supprimer cette tâche ?", priority: "Priorité", high: "Haute", medium: "Moyenne", low: "Basse", cancel: "Annuler", save: "Enregistrer", resetConfirm: "Réinitialiser toutes les tâches ?", importError: "Format de fichier invalide" },
+        de: { title: "Kanban-Board", todo: "Zu Erledigen", inProgress: "In Bearbeitung", done: "Fertig", addTask: "Aufgabe Hinzufügen", export: "Exportieren", import: "Importieren", language: "Sprache", delete: "Löschen", confirmDelete: "Diese Aufgabe löschen?", priority: "Priorität", high: "Hoch", medium: "Mittel", low: "Niedrig", cancel: "Abbrechen", save: "Speichern", resetConfirm: "Alle Aufgaben zurücksetzen?", importError: "Ungültiges Dateiformat" },
+        it: { title: "Bacheca Kanban", todo: "Da Fare", inProgress: "In Corso", done: "Fatto", addTask: "Aggiungi Compito", export: "Esporta", import: "Importa", language: "Lingua", delete: "Elimina", confirmDelete: "Eliminare questo compito?", priority: "Priorità", high: "Alta", medium: "Media", low: "Bassa", cancel: "Annulla", save: "Salva", resetConfirm: "Ripristinare tutte le attività?", importError: "Formato file non valido" },
+        es: { title: "Tablero Kanban", todo: "Por Hacer", inProgress: "En Progreso", done: "Hecho", addTask: "Agregar Tarea", export: "Exportar", import: "Importar", language: "Idioma", delete: "Eliminar", confirmDelete: "¿Eliminar esta tarea?", priority: "Prioridad", high: "Alta", medium: "Media", low: "Baja", cancel: "Cancelar", save: "Guardar", resetConfirm: "¿Restablecer todas las tareas?", importError: "Formato de archivo no válido" },
+        ja: { title: "カンバンボード", todo: "やること", inProgress: "進行中", done: "完了", addTask: "タスクを追加", export: "エクスポート", import: "インポート", language: "言語", delete: "削除", confirmDelete: "このタスクを削除しますか？", priority: "優先度", high: "高", medium: "中", low: "低", cancel: "キャンセル", save: "保存", resetConfirm: "すべてのタスクをリセットしますか？", importError: "無効なファイル形式" },
+        ko: { title: "칸반 보드", todo: "해야 할 일", inProgress: "진행 중", done: "완료", addTask: "작업 추가", export: "내보내기", import: "가져오기", language: "언어", delete: "삭제", confirmDelete: "이 작업을 삭제하시겠습니까?", priority: "우선 순위", high: "높음", medium: "중간", low: "낮음", cancel: "취소", save: "저장", resetConfirm: "모든 작업을 재설정하시겠습니까?", importError: "유효하지 않은 파일 형식" },
+        zh: { title: "看板", todo: "待办事项", inProgress: "进行中", done: "完成", addTask: "添加任务", export: "导出", import: "导入", language: "语言", delete: "删除", confirmDelete: "删除此任务？", priority: "优先级", high: "高", medium: "中", low: "低", cancel: "取消", save: "保存", resetConfirm: "重置所有任务？", importError: "无效的文件格式" },
+        lv: { title: "Kanban dēlis", todo: "Jādara", inProgress: "Procesā", done: "Izpildīts", addTask: "Pievienot uzdevumu", export: "Eksportēt", import: "Importēt", language: "Valoda", delete: "Dzēst", confirmDelete: "Dzēst šo uzdevumu?", priority: "Prioritāte", high: "Augsta", medium: "Vidēja", low: "Zema", cancel: "Atcelt", save: "Saglabāt", resetConfirm: "Atjaunot visus uzdevumus?", importError: "Nederīgs faila formāts" },
+        ru: { title: "Доска Канбан", todo: "К выполнению", inProgress: "В процессе", done: "Сделано", addTask: "Добавить задачу", export: "Экспорт", import: "Импорт", language: "Язык", delete: "Удалить", confirmDelete: "Удалить эту задачу?", priority: "Приоритет", high: "Высокий", medium: "Средний", low: "Низкий", cancel: "Отмена", save: "Сохранить", resetConfirm: "Сбросить все задачи?", importError: "Неверный формат файла" },
+        pt: { title: "Quadro Kanban", todo: "A Fazer", inProgress: "Em Progresso", done: "Concluído", addTask: "Adicionar Tarefa", export: "Exportar", import: "Importar", language: "Idioma", delete: "Excluir", confirmDelete: "Excluir esta tarefa?", priority: "Prioridade", high: "Alta", medium: "Média", low: "Baixa", cancel: "Cancelar", save: "Salvar", resetConfirm: "Redefinir todas as tarefas?", importError: "Formato de arquivo inválido" }
     };
 
-    let currentLanguage = 'fr'; // Langue par défaut
+    let currentLanguage = 'fr';
     let isVisible = false;
 
-    // Création de l'interface
     const kanbanHTML = `
         <div class="kanban-header">
             <div class="kanban-title">${translations[currentLanguage].title}</div>
             <div class="kanban-controls">
-                <button class="control-button" id="exportBtn">
-                    <span>↓</span> ${translations[currentLanguage].export}
-                </button>
-                <button class="control-button" id="importBtn">
-                    <span>↑</span> ${translations[currentLanguage].import}
-                </button>
+                <button class="control-button" id="exportBtn"><span>↓</span> ${translations[currentLanguage].export}</button>
+                <button class="control-button" id="importBtn"><span>↑</span> ${translations[currentLanguage].import}</button>
                 <div class="language-selector">
                     <button class="control-button" id="languageBtn">🌐 ${translations[currentLanguage].language}</button>
                     <div class="language-menu">
@@ -348,44 +117,29 @@
     toggleBtn.textContent = translations[currentLanguage].title;
     document.body.appendChild(toggleBtn);
 
-    // Gestion d'état
     let tasks = JSON.parse(GM_getValue('kanbanTasks', '[]'));
     let dragTask = null;
 
-    // Fonctionnalités principales
     function initKanban() {
-        // Chargement des tâches
         tasks.forEach(task => createTaskElement(task));
-
-        // Gestion du drag and drop
         setupDragAndDrop();
-
-        // Événements
         document.querySelectorAll('.add-task-button').forEach(btn => {
             btn.addEventListener('click', showTaskForm);
         });
-
         document.getElementById('languageBtn').addEventListener('click', toggleLanguageMenu);
         document.querySelectorAll('.language-option').forEach(option => {
             option.addEventListener('click', changeLanguage);
         });
-
         document.getElementById('exportBtn').addEventListener('click', exportTasks);
         document.getElementById('importBtn').addEventListener('click', importTasks);
-
         document.querySelectorAll('.size-button').forEach(button => {
             button.addEventListener('click', changeSize);
         });
-
         toggleBtn.addEventListener('click', () => {
             isVisible = !isVisible;
             container.style.display = isVisible ? 'flex' : 'none';
-            toggleBtn.textContent = isVisible ?
-                `▲ ${translations[currentLanguage].title}` :
-                `▼ ${translations[currentLanguage].title}`;
+            toggleBtn.textContent = isVisible ? `▲ ${translations[currentLanguage].title}` : `▼ ${translations[currentLanguage].title}`;
         });
-
-        // Fonctionnalité de déplacement
         makeDraggable(container);
     }
 
@@ -400,14 +154,12 @@
             </div>
             <div class="delete-task">×</div>
         `;
-
         task.querySelector('.delete-task').addEventListener('click', () => {
             if (confirm(translations[currentLanguage].confirmDelete)) {
                 task.remove();
                 saveTasks();
             }
         });
-
         document.getElementById(taskData.column).appendChild(task);
         return task;
     }
@@ -426,7 +178,6 @@
             <button class="save-btn">${translations[currentLanguage].save}</button>
             <button class="cancel-btn">${translations[currentLanguage].cancel}</button>
         `;
-
         form.querySelector('.save-btn').addEventListener('click', () => {
             const text = form.querySelector('input').value;
             const priority = form.querySelector('select').value;
@@ -438,7 +189,6 @@
                 form.remove();
             }
         });
-
         form.querySelector('.cancel-btn').addEventListener('click', () => form.remove());
         e.target.closest('.kanban-column').appendChild(form);
     }
@@ -449,33 +199,29 @@
                 dragTask = task;
                 task.classList.add('dragging');
             });
-
             task.addEventListener('dragend', () => {
                 dragTask = null;
                 task.classList.remove('dragging');
                 saveTasks();
             });
         });
-
         document.querySelectorAll('.kanban-column').forEach(column => {
             column.addEventListener('dragover', e => {
                 e.preventDefault();
                 const afterElement = getDragAfterElement(column, e.clientY);
                 const draggable = document.querySelector('.dragging');
-
                 if (afterElement) {
                     column.insertBefore(draggable, afterElement);
                 } else {
                     column.appendChild(draggable);
                 }
             });
-
             column.addEventListener('drop', e => {
                 e.preventDefault();
                 const draggable = document.querySelector('.dragging');
                 if (draggable) {
                     column.appendChild(draggable);
-                    saveTasks(); // Sauvegarder les tâches après le déplacement
+                    saveTasks();
                 }
             });
         });
@@ -486,8 +232,7 @@
             .reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
-                return offset < 0 && offset > closest.offset ?
-                    { offset: offset, element: child } : closest;
+                return offset < 0 && offset > closest.offset ? { offset: offset, element: child } : closest;
             }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
@@ -566,47 +311,35 @@
     function changeSize(e) {
         const size = e.target.dataset.size;
         switch(size) {
-            case 'small':
-                container.style.width = '400px';
-                break;
-            case 'medium':
-                container.style.width = '800px';
-                break;
-            case 'large':
-                container.style.width = '1200px';
-                break;
+            case 'small': container.style.width = '400px'; break;
+            case 'medium': container.style.width = '800px'; break;
+            case 'large': container.style.width = '1200px'; break;
         }
     }
 
     function makeDraggable(element) {
         let offsetX, offsetY;
-
         element.addEventListener('mousedown', (e) => {
             offsetX = e.clientX - element.getBoundingClientRect().left;
             offsetY = e.clientY - element.getBoundingClientRect().top;
             document.addEventListener('mousemove', mouseMoveHandler);
             document.addEventListener('mouseup', mouseUpHandler);
         });
-
         function mouseMoveHandler(e) {
             element.style.left = `${e.clientX - offsetX}px`;
             element.style.top = `${e.clientY - offsetY}px`;
             element.style.position = 'absolute';
         }
-
         function mouseUpHandler() {
             document.removeEventListener('mousemove', mouseMoveHandler);
             document.removeEventListener('mouseup', mouseUpHandler);
         }
     }
 
-    // Initialisation
     initKanban();
     document.addEventListener('click', () => {
         document.querySelector('.language-menu').style.display = 'none';
     });
-
-    // Gestion responsive
     window.addEventListener('resize', () => {
         container.style.width = window.innerWidth < 768 ? '95vw' : '800px';
     });
