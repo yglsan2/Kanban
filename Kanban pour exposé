@@ -18,7 +18,7 @@
     GM_addStyle(`
         :root { --primary-color: #2c3e50; --secondary-color: #3498db; --success-color: #27ae60; --danger-color: #e74c3c; --background-color: #ecf0f1; --text-color: #2c3e50; --border-radius: 10px; --box-shadow: 0 4px 6px rgba(0,0,0,0.1); --transition: all 0.3s ease; }
         body { color: var(--text-color); background-color: var(--background-color); }
-        #kanbanContainer { position: fixed; bottom: 30px; right: 30px; width: 800px; max-width: 90vw; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); font-family: 'Segoe UI', system-ui, sans-serif; z-index: 10000; display: none; flex-direction: column; max-height: 90vh; cursor: move; }
+        #kanbanContainer { position: fixed; bottom: 30px; right: 30px; width: 800px; max-width: 90vw; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); font-family: 'Segoe UI', system-ui, sans-serif; z-index: 10000; display: none; flex-direction: column; max-height: 90vh; }
         .kanban-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--primary-color); color: white; border-radius: var(--border-radius) var(--border-radius) 0 0; }
         .kanban-title { font-size: 1.5rem; font-weight: 600; }
         .kanban-controls { display: flex; gap: 0.5rem; align-items: center; }
@@ -40,7 +40,7 @@
         .kanban-task:hover .delete-task { opacity: 1; }
         #toggleKanban { position: fixed; bottom: 30px; right: 30px; padding: 1rem 1.5rem; background: var(--primary-color); color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: var(--box-shadow); display: flex; align-items: center; gap: 0.5rem; z-index: 9999; }
         .language-selector { position: relative; }
-        .language-menu { position: absolute; right: 0; top: 100%; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); padding: 0.5rem; min-width: 150px; display: none; z-index: 10000; border: 1px solid var(--primary-color); }
+        .language-menu { position: absolute; right: 0; top: 100%; background: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); padding: 0.5rem; min-width: 150px; display: none; z-index: 10000; border: 1px solid var(--primary-color); color: black; }
         .language-option { padding: 0.5rem; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 0.5rem; }
         .language-option:hover { background: var(--background-color); }
         .size-button { padding: 0.5rem; border: none; border-radius: 6px; cursor: pointer; background: rgba(255, 255, 255, 0.1); color: white; display: flex; align-items: center; gap: 0.5rem; }
@@ -64,6 +64,7 @@
 
     let currentLanguage = 'fr';
     let isVisible = false;
+    let isDraggingTask = false;
 
     const kanbanHTML = `
         <div class="kanban-header">
@@ -197,10 +198,12 @@
     function setupDragAndDrop() {
         document.querySelectorAll('.kanban-task').forEach(task => {
             task.addEventListener('dragstart', () => {
+                isDraggingTask = true;
                 dragTask = task;
                 task.classList.add('dragging');
             });
             task.addEventListener('dragend', () => {
+                isDraggingTask = false;
                 dragTask = null;
                 task.classList.remove('dragging');
                 saveTasks();
@@ -321,6 +324,7 @@
     function makeDraggable(element) {
         let offsetX, offsetY;
         element.addEventListener('mousedown', (e) => {
+            if (isDraggingTask) return;
             offsetX = e.clientX - element.getBoundingClientRect().left;
             offsetY = e.clientY - element.getBoundingClientRect().top;
             document.addEventListener('mousemove', mouseMoveHandler);
