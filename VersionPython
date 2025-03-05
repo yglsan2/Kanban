@@ -1,53 +1,52 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import json
 
 # Traductions pour plusieurs langues
 translations = {
-    "gb": {"title": "Kanban Board", "todo": "To Do", "inProgress": "In Progress", "done": "Done", 
-           "addTask": "Add Task", "export": "Export", "import": "Import", "language": "Language", 
-           "delete": "Delete", "confirmDelete": "Delete this task?", "priority": "Priority", 
-           "high": "High", "medium": "Medium", "low": "Low", "cancel": "Cancel", "save": "Save", 
-           "resetConfirm": "Reset all tasks?", "importError": "Invalid file format"},
+    "gb": {"title": "Kanban Board", "todo": "To Do", "inProgress": "In Progress", "done": "Done",
+           "addTask": "Add Task", "export": "Export", "import": "Import", "language": "Language",
+           "delete": "Delete", "confirmDelete": "Delete this task?", "priority": "Priority",
+           "high": "High", "medium": "Medium", "low": "Low", "cancel": "Cancel", "save": "Save",
+           "resetConfirm": "Reset all tasks?", "importError": "Invalid file format", "creator": "Created by Yglsan"},
     "fr": {"title": "Tableau Kanban", "todo": "À Faire", "inProgress": "En Cours", "done": "Terminé",
            "addTask": "Ajouter Tâche", "export": "Exporter", "import": "Importer", "language": "Langue",
            "delete": "Supprimer", "confirmDelete": "Supprimer cette tâche ?", "priority": "Priorité",
            "high": "Haute", "medium": "Moyenne", "low": "Basse", "cancel": "Annuler", "save": "Enregistrer",
-           "resetConfirm": "Réinitialiser toutes les tâches ?", "importError": "Format de fichier invalide"},
-    "de": { title: "Kanban-Board", todo: "Zu Erledigen", inProgress: "In Bearbeitung", done: "Fertig",
-            addTask: "Aufgabe Hinzufügen", export: "Exportieren", import: "Importieren", language: "Sprache",
-            delete: "Löschen", confirmDelete: "Diese Aufgabe löschen?", priority: "Priorität", high: "Hoch", medium: "Mittel",
-            low: "Niedrig", cancel: "Abbrechen", save: "Speichern", resetConfirm: "Alle Aufgaben zurücksetzen?", importError: "Ungültiges Dateiformat" },
-    "it": { title: "Bacheca Kanban", todo: "Da Fare", inProgress: "In Corso", done: "Fatto", addTask: "Aggiungi Compito",
-            export: "Esporta", import: "Importa", language: "Lingua", delete: "Elimina", confirmDelete: "Eliminare questo compito?",
-            priority: "Priorità", high: "Alta", medium: "Media", low: "Bassa", cancel: "Annulla", save: "Salva",
-            resetConfirm: "Ripristinare tutte le attività?", importError: "Formato file non valido" },
-    "es": { title: "Tablero Kanban", todo: "Por Hacer", inProgress: "En Progreso", done: "Hecho", addTask: "Agregar Tarea", export:
-            "Exportar", import: "Importar", language: "Idioma", delete: "Eliminar", confirmDelete: "¿Eliminar esta tarea?", priority: "Prioridad",
-            high: "Alta", medium: "Media", low: "Baja", cancel: "Cancelar", save: "Guardar", resetConfirm: "¿Restablecer todas las tareas?",
-            importError: "Formato de archivo no válido" },
-    "jp": { title: "カンバンボード", todo: "やること", inProgress: "進行中", done: "完了", addTask: "タスクを追加", export: "エクスポート", import: "インポート",
-            language: "言語", delete: "削除", confirmDelete: "このタスクを削除しますか？", priority: "優先度", high: "高", medium: "中", low: "低",
-            cancel: "キャンセル", save: "保存", resetConfirm: "すべてのタスクをリセットしますか？", importError: "無効なファイル形式" },
-    "kr": { title: "칸반 보드", todo: "해야 할 일", inProgress: "진행 중", done: "완료", addTask: "작업 추가", export: "내보내기", import: "가져오기",
-            language: "언어", delete: "삭제", confirmDelete: "이 작업을 삭제하시겠습니까?", priority: "우선 순위", high: "높음", medium: "중간",
-            low: "낮음", cancel: "취소", save: "저장", resetConfirm: "모든 작업을 재설정하시겠습니까?", importError: "유효하지 않은 파일 형식" },
-    "cn": { title: "看板", todo: "待办事项", inProgress: "进行中", done: "完成", addTask: "添加任务", export: "导出", import: "导入",
-            language: "语言", delete: "删除", confirmDelete: "删除此任务？", priority: "优先级", high: "高", medium: "中", low: "低",
-            cancel: "取消", save: "保存", resetConfirm: "重置所有任务？", importError: "无效的文件格式" },
-    "lv": { title: "Kanban dēlis", todo: "Jādara", inProgress: "Procesā", done: "Izpildīts", addTask: "Pievienot uzdevumu", export: "Eksportēt",
-            import: "Importēt", language: "Valoda", delete: "Dzēst", confirmDelete: "Dzēst šo uzdevumu?", priority: "Prioritāte", high: "Augsta",
-            medium: "Vidēja", low: "Zema", cancel: "Atcelt", save: "Saglabāt", resetConfirm: "Atjaunot visus uzdevumus?", importError: "Nederīgs faila formāts" },
-    "ru": { title: "Доска Канбан", todo: "К выполнению", inProgress: "В процессе", done: "Сделано", addTask: "Добавить задачу", export: "Экспорт",
-            import: "Импорт", language: "Язык", delete: "Удалить", confirmDelete: "Удалить эту задачу?", priority: "Приоритет", high: "Высокий",
-            medium: "Средний", low: "Низкий", cancel: "Отмена", save: "Сохранить", resetConfirm: "Сбросить все задачи?", importError: "Неверный формат файла" },
-    "pt": { title: "Quadro Kanban", todo: "A Fazer", inProgress: "Em Progresso", done: "Concluído", addTask: "Adicionar Tarefa", export:
-            "Exportar", import: "Importar", language: "Idioma", delete: "Excluir", confirmDelete: "Excluir esta tarefa?", priority: "Prioridade",
-            high: "Alta", medium: "Média", low: "Baixa", cancel: "Cancelar", save: "Salvar", resetConfirm: "Redefinir todas as tarefas?", importError: "Formato de arquivo inválido" },
-    "sa": { title: "لوحة كانبان", todo: "للقيام به", inProgress: "قيد التقدم", done: "منجز", addTask: "إضافة مهمة", export: "تصدير", import: "استيراد", language: "لغة",
-            delete: "حذف", confirmDelete: "هل تريد حذف هذه المهمة؟", priority: "أولوية", high: "عالية", medium: "متوسطة", low: "منخفضة", 
-            cancel: "إلغاء", save: "حفظ", resetConfirm: "إعادة تعيين جميع المهام؟", importError: "تنسيق الملف غير صالح" }
-    };
+           "resetConfirm": "Réinitialiser toutes les tâches ?", "importError": "Format de fichier invalide", "creator": "Créé par Yglsan"},
+    "de": { "title": "Kanban-Board", "todo": "Zu Erledigen", "inProgress": "In Bearbeitung", "done": "Fertig",
+            "addTask": "Aufgabe Hinzufügen", "export": "Exportieren", "import": "Importieren", "language": "Sprache",
+            "delete": "Löschen", "confirmDelete": "Diese Aufgabe löschen?", "priority": "Priorität", "high": "Hoch", "medium": "Mittel",
+            "low": "Niedrig", "cancel": "Abbrechen", "save": "Speichern", "resetConfirm": "Alle Aufgaben zurücksetzen?", "importError": "Ungültiges Dateiformat", "creator": "Erstellt von Yglsan" },
+    "it": { "title": "Bacheca Kanban", "todo": "Da Fare", "inProgress": "In Corso", "done": "Fatto", "addTask": "Aggiungi Compito",
+            "export": "Esporta", "import": "Importa", "language": "Lingua", "delete": "Elimina", "confirmDelete": "Eliminare questo compito?",
+            "priority": "Priorità", "high": "Alta", "medium": "Media", "low": "Bassa", "cancel": "Annulla", "save": "Salva",
+            "resetConfirm": "Ripristinare tutte le attività?", "importError": "Formato file non valido", "creator": "Creato da Yglsan" },
+    "es": { "title": "Tablero Kanban", "todo": "Por Hacer", "inProgress": "En Progreso", "done": "Hecho", "addTask": "Agregar Tarea", "export":
+            "Exportar", "import": "Importar", "language": "Idioma", "delete": "Eliminar", "confirmDelete": "¿Eliminar esta tarea?", "priority": "Prioridad",
+            "high": "Alta", "medium": "Media", "low": "Baja", "cancel": "Cancelar", "save": "Guardar", "resetConfirm": "¿Restablecer todas las tareas?",
+            "importError": "Formato de archivo no válido", "creator": "Creado por Yglsan" },
+    "jp": { "title": "カンバンボード", "todo": "やること", "inProgress": "進行中", "done": "完了", "addTask": "タスクを追加", "export": "エクスポート", "import": "インポート",
+            "language": "言語", "delete": "削除", "confirmDelete": "このタスクを削除しますか？", "priority": "優先度", "high": "高", "medium": "中", "low": "低",
+            "cancel": "キャンセル", "save": "保存", "resetConfirm": "すべてのタスクをリセットしますか？", "importError": "無効なファイル形式", "creator": "Yglsanによって作成" },
+    "kr": { "title": "칸반 보드", "todo": "해야 할 일", "inProgress": "진행 중", "done": "완료", "addTask": "작업 추가", "export": "내보내기", "import": "가져오기",
+            "language": "언어", "delete": "삭제", "confirmDelete": "이 작업을 삭제하시겠습니까?", "priority": "우선 순위", "high": "높음", "medium": "중간",
+            "low": "낮음", "cancel": "취소", "save": "저장", "resetConfirm": "모든 작업을 재설정하시겠습니까?", "importError": "유효하지 않은 파일 형식", "creator": "Yglsan에 의해 만들어짐" },
+    "cn": { "title": "看板", "todo": "待办事项", "inProgress": "进行中", "done": "完成", "addTask": "添加任务", "export": "导出", "import": "导入",
+            "language": "语言", "delete": "删除", "confirmDelete": "删除此任务？", "priority": "优先级", "high": "高", "medium": "中", "low": "低",
+            "cancel": "取消", "save": "保存", "resetConfirm": "重置所有任务？", "importError": "无效的文件格式", "creator": "由Yglsan创建" },
+    "lv": { "title": "Kanban dēlis", "todo": "Jādara", "inProgress": "Procesā", "done": "Izpildīts", "addTask": "Pievienot uzdevumu", "export": "Eksportēt",
+            "import": "Importēt", "language": "Valoda", "delete": "Dzēst", "confirmDelete": "Dzēst šo uzdevumu?", "priority": "Prioritāte", "high": "Augsta",
+            "medium": "Vidēja", "low": "Zema", "cancel": "Atcelt", "save": "Saglabāt", "resetConfirm": "Atjaunot visus uzdevumus?", "importError": "Nederīgs faila formāts", "creator": "Izveidots ar Yglsan" },
+    "ru": { "title": "Доска Канбан", "todo": "К выполнению", "inProgress": "В процессе", "done": "Сделано", "addTask": "Добавить задачу", "export": "Экспорт",
+            "import": "Импорт", "language": "Язык", "delete": "Удалить", "confirmDelete": "Удалить эту задачу?", "priority": "Приоритет", "high": "Высокий",
+            "medium": "Средний", "low": "Низкий", "cancel": "Отмена", "save": "Сохранить", "resetConfirm": "Сбросить все задачи?", "importError": "Неверный формат файла", "creator": "Создано Yglsan" },
+    "pt": { "title": "Quadro Kanban", "todo": "A Fazer", "inProgress": "Em Progresso", "done": "Concluído", "addTask": "Adicionar Tarefa", "export":
+            "Exportar", "import": "Importar", "language": "Idioma", "delete": "Excluir", "confirmDelete": "Excluir esta tarefa?", "priority": "Prioridade",
+            "high": "Alta", "medium": "Média", "low": "Baixa", "cancel": "Cancelar", "save": "Salvar", "resetConfirm": "Redefinir todas as tarefas?", "importError": "Formato de arquivo inválido", "creator": "Criado por Yglsan" },
+    "sa": { "title": "لوحة كانبان", "todo": "للقيام به", "inProgress": "قيد التقدم", "done": "منجز", "addTask": "إضافة مهمة", "export": "تصدير", "import": "استيراد", "language": "لغة",
+            "delete": "حذف", "confirmDelete": "هل تريد حذف هذه المهمة؟", "priority": "أولوية", "high": "عالية", "medium": "متوسطة", "low": "منخفضة",
+            "cancel": "إلغاء", "save": "حفظ", "resetConfirm": "إعادة تعيين جميع المهام؟", "importError": "تنسيق الملف غير صالح", "creator": "أنشئ بواسطة Yglsan" }
 }
 
 # Couleurs de priorité
@@ -62,18 +61,18 @@ class DraggableTask(tk.Frame):
         super().__init__(master, bg=priority_colors[priority], bd=1, relief=tk.RAISED)
         self.column = column
         self.delete_callback = delete_callback
-        
-        self.task_content = tk.Label(self, text=text, bg=priority_colors[priority])
-        self.task_content.pack(side=tk.LEFT, padx=5)
-        
-        self.priority_label = tk.Label(self, text=translations['fr'][priority], 
+
+        self.task_content = tk.Label(self, text=text, bg=priority_colors[priority], font=('Arial', 10))
+        self.task_content.pack(side=tk.LEFT, padx=10)
+
+        self.priority_label = tk.Label(self, text=translations['fr'][priority],
                                      bg=priority_colors[priority], font=('Arial', 8))
-        self.priority_label.pack(side=tk.LEFT, padx=5)
-        
-        self.delete_btn = tk.Label(self, text="×", fg="red", cursor="hand2")
-        self.delete_btn.pack(side=tk.RIGHT, padx=5)
+        self.priority_label.pack(side=tk.LEFT, padx=10)
+
+        self.delete_btn = tk.Label(self, text="×", fg="red", cursor="hand2", font=('Arial', 10, 'bold'))
+        self.delete_btn.pack(side=tk.RIGHT, padx=10)
         self.delete_btn.bind("<Button-1>", self.delete_task)
-        
+
         self.bind("<ButtonPress-1>", self.start_drag)
         self.bind("<B1-Motion>", self.do_drag)
         self.bind("<ButtonRelease-1>", self.stop_drag)
@@ -102,7 +101,7 @@ class DraggableTask(tk.Frame):
         return None
 
     def delete_task(self, event=None):
-        if messagebox.askyesno(translations[self.master.master.lang]["confirmDelete"], 
+        if messagebox.askyesno(translations[self.master.master.lang]["confirmDelete"],
                              translations[self.master.master.lang]["confirmDelete"]):
             self.destroy()
             self.delete_callback()
@@ -113,34 +112,34 @@ class KanbanColumn(tk.Canvas):
         self.id = id
         self.title = title
         self.tasks = []
-        
+
         self.header = tk.Frame(self, bg='#2c3e50')
-        self.title_label = tk.Label(self.header, text=title, fg='white', bg='#2c3e50')
-        self.add_btn = tk.Button(self.header, text="+", command=self.add_task_dialog)
-        
-        self.header.pack(fill=tk.X)
-        self.title_label.pack(side=tk.LEFT, padx=5)
-        self.add_btn.pack(side=tk.RIGHT, padx=5)
-        
+        self.title_label = tk.Label(self.header, text=title, fg='white', bg='#2c3e50', font=('Arial', 12, 'bold'))
+        self.add_btn = tk.Button(self.header, text="+", font=('Arial', 10, 'bold'), command=lambda: self.master.master.add_task_dialog(self.id))
+
+        self.header.pack(fill=tk.X, pady=5)
+        self.title_label.pack(side=tk.LEFT, padx=10)
+        self.add_btn.pack(side=tk.RIGHT, padx=10)
+
         self.create_window(0, 0, window=self.header, anchor=tk.NW, width=250)
         self.scrollable_frame = tk.Frame(self)
-        self.create_window(0, 30, window=self.scrollable_frame, anchor=tk.NW)
-        
+        self.create_window(0, 40, window=self.scrollable_frame, anchor=tk.NW)
+
         self.bind("<Configure>", self.on_configure)
 
     def on_configure(self, event):
         self.configure(scrollregion=self.bbox("all"))
 
     def add_task(self, text, priority):
-        task = DraggableTask(self.scrollable_frame, text, priority, self.id, 
+        task = DraggableTask(self.scrollable_frame, text, priority, self.id,
                            lambda: self.remove_task(task))
-        task.pack(fill=tk.X, pady=2)
+        task.pack(fill=tk.X, pady=5)
         self.tasks.append(task)
         self.update_tasks()
 
     def move_task(self, task, new_column):
         self.tasks.remove(task)
-        self.master.columns[new_column].add_task(task.task_content.cget("text"), 
+        self.master.columns[new_column].add_task(task.task_content.cget("text"),
                                                task.priority_label.cget("text").lower())
         task.destroy()
         self.master.save_state()
@@ -149,7 +148,7 @@ class KanbanColumn(tk.Canvas):
         for i, task in enumerate(self.tasks):
             task.pack_forget()
         for task in self.tasks:
-            task.pack(fill=tk.X, pady=2)
+            task.pack(fill=tk.X, pady=5)
 
 class KanbanApp:
     def __init__(self, root):
@@ -157,45 +156,68 @@ class KanbanApp:
         self.lang = "fr"
         self.setup_ui()
         self.load_state()
-        
+
     def setup_ui(self):
         self.root.title(translations[self.lang]["title"])
         self.root.geometry("800x500")
-        
+        self.root.configure(bg='#f5f5f5')
+
         # Contrôles supérieurs
-        self.control_frame = tk.Frame(self.root)
-        self.control_frame.pack(fill=tk.X)
-        
-        self.lang_selector = ttk.Combobox(self.control_frame, values=list(translations.keys()))
+        self.control_frame = tk.Frame(self.root, bg='#f5f5f5')
+        self.control_frame.pack(fill=tk.X, pady=10)
+
+        self.lang_selector = ttk.Combobox(self.control_frame, values=list(translations.keys()), font=('Arial', 10))
         self.lang_selector.set(self.lang)
-        self.lang_selector.pack(side=tk.LEFT, padx=5)
+        self.lang_selector.pack(side=tk.LEFT, padx=10)
         self.lang_selector.bind("<<ComboboxSelected>>", self.change_language)
-        
+
         self.export_btn = tk.Button(self.control_frame, text=translations[self.lang]["export"],
-                                   command=self.export_tasks)
-        self.export_btn.pack(side=tk.LEFT, padx=5)
-        
+                                   command=self.export_tasks, font=('Arial', 10))
+        self.export_btn.pack(side=tk.LEFT, padx=10)
+
         self.import_btn = tk.Button(self.control_frame, text=translations[self.lang]["import"],
-                                   command=self.import_tasks)
-        self.import_btn.pack(side=tk.LEFT, padx=5)
-        
+                                   command=self.import_tasks, font=('Arial', 10))
+        self.import_btn.pack(side=tk.LEFT, padx=10)
+
         # Colonnes
-        self.columns_frame = tk.Frame(self.root)
-        self.columns_frame.pack(fill=tk.BOTH, expand=True)
-        
+        self.columns_frame = tk.Frame(self.root, bg='#f5f5f5')
+        self.columns_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
         self.columns = {
             "todo": KanbanColumn(self.columns_frame, "todo", translations[self.lang]["todo"]),
             "inProgress": KanbanColumn(self.columns_frame, "inProgress", translations[self.lang]["inProgress"]),
             "done": KanbanColumn(self.columns_frame, "done", translations[self.lang]["done"])
         }
-        
+
         for i, col in enumerate(self.columns.values()):
-            col.grid(row=0, column=i, padx=5, pady=5, sticky=tk.NSEW)
-        
+            col.grid(row=0, column=i, padx=10, pady=10, sticky=tk.NSEW)
+
         self.columns_frame.grid_columnconfigure(0, weight=1)
         self.columns_frame.grid_columnconfigure(1, weight=1)
         self.columns_frame.grid_columnconfigure(2, weight=1)
-        
+
+        # Bouton pour redimensionner la fenêtre
+        self.resize_btn = tk.Button(self.root, text="📏", command=self.resize_window, font=('Arial', 10))
+        self.resize_btn.pack(side=tk.BOTTOM, padx=10, pady=10)
+
+        # Bouton pour déplacer la fenêtre
+        self.move_btn = tk.Button(self.root, text="📐", command=self.make_draggable, font=('Arial', 10))
+        self.move_btn.pack(side=tk.BOTTOM, padx=10, pady=10)
+
+        # Bouton pour masquer/afficher la fenêtre
+        self.toggle_btn = tk.Button(self.root, text="🔄", command=self.toggle_visibility, font=('Arial', 10))
+        self.toggle_btn.pack(side=tk.BOTTOM, padx=10, pady=10)
+
+        # Menu déroulant pour changer la taille de la fenêtre
+        self.size_selector = ttk.Combobox(self.control_frame, values=["small", "medium", "large"], font=('Arial', 10))
+        self.size_selector.set("medium")
+        self.size_selector.pack(side=tk.LEFT, padx=10)
+        self.size_selector.bind("<<ComboboxSelected>>", self.change_size)
+
+        # Ajout du créateur de l'application
+        self.creator_label = tk.Label(self.root, text=translations[self.lang]["creator"], bg='#f5f5f5', font=('Arial', 10, 'italic'))
+        self.creator_label.pack(side=tk.BOTTOM, pady=10)
+
     def change_language(self, event):
         self.lang = self.lang_selector.get()
         self.update_ui_language()
@@ -207,11 +229,17 @@ class KanbanApp:
         self.export_btn.config(text=translations[self.lang]["export"])
         self.import_btn.config(text=translations[self.lang]["import"])
         self.lang_selector.set(self.lang)
+        self.creator_label.config(text=translations[self.lang]["creator"])
 
-    def add_task_dialog(self):
-        # Implémenter la boîte de dialogue d'ajout
-        pass
-        
+    def add_task_dialog(self, column_id):
+        task_text = simpledialog.askstring(translations[self.lang]["addTask"], translations[self.lang]["addTask"])
+        if task_text:
+            priority = simpledialog.askstring(translations[self.lang]["priority"], translations[self.lang]["priority"],
+                                              initialvalue=translations[self.lang]["low"])
+            if priority in ["high", "medium", "low"]:
+                self.columns[column_id].add_task(task_text, priority)
+                self.save_state()
+
     def save_state(self):
         tasks = []
         for col in self.columns.values():
@@ -222,7 +250,7 @@ class KanbanApp:
             } for task in col.tasks])
         with open("kanban_state.json", "w") as f:
             json.dump(tasks, f)
-            
+
     def load_state(self):
         try:
             with open("kanban_state.json", "r") as f:
@@ -231,12 +259,16 @@ class KanbanApp:
                     self.columns[task["column"]].add_task(task["text"], task["priority"])
         except FileNotFoundError:
             pass
-            
+
     def export_tasks(self):
         file = filedialog.asksaveasfilename(defaultextension=".json")
         if file:
             self.save_state()
-            
+            with open("kanban_state.json", "r") as f:
+                tasks = json.load(f)
+            with open(file, "w") as f:
+                json.dump(tasks, f)
+
     def import_tasks(self):
         file = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
         if file:
@@ -247,6 +279,41 @@ class KanbanApp:
                         self.columns[task["column"]].add_task(task["text"], task["priority"])
             except json.JSONDecodeError:
                 messagebox.showerror(translations[self.lang]["importError"])
+
+    def resize_window(self):
+        if self.root.winfo_width() == 800:
+            self.root.geometry("400x500")
+        else:
+            self.root.geometry("800x500")
+
+    def make_draggable(self):
+        self.root.overrideredirect(True)
+        self.root.bind("<ButtonPress-1>", self.start_move)
+        self.root.bind("<B1-Motion>", self.do_move)
+
+    def start_move(self, event):
+        self.x = event.x
+        self.y = event.y
+
+    def do_move(self, event):
+        x = (event.x_root - self.x)
+        y = (event.y_root - self.y)
+        self.root.geometry(f"+{x}+{y}")
+
+    def toggle_visibility(self):
+        if self.root.winfo_viewable():
+            self.root.withdraw()
+        else:
+            self.root.deiconify()
+
+    def change_size(self, event):
+        size = self.size_selector.get()
+        if size == "small":
+            self.root.geometry("400x500")
+        elif size == "medium":
+            self.root.geometry("800x500")
+        elif size == "large":
+            self.root.geometry("1200x500")
 
 if __name__ == "__main__":
     root = tk.Tk()
