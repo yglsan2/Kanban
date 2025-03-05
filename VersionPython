@@ -1,0 +1,74 @@
+import tkinter as tk
+from tkinter import ttk
+
+# Dictionnaire de traduction
+translations = {
+    "fr": {"todo": "À faire", "in_progress": "En cours", "done": "Terminé", "add_task": "Ajouter une tâche", "task_placeholder": "Nouvelle tâche"},
+    "en": {"todo": "To Do", "in_progress": "In Progress", "done": "Done", "add_task": "Add Task", "task_placeholder": "New Task"},
+    "de": {"todo": "Zu Erledigen", "in_progress": "In Bearbeitung", "done": "Erledigt", "add_task": "Aufgabe Hinzufügen", "task_placeholder": "Neue Aufgabe"},
+    "es": {"todo": "Por Hacer", "in_progress": "En Proceso", "done": "Hecho", "add_task": "Agregar Tarea", "task_placeholder": "Nueva Tarea"},
+    "it": {"todo": "Da Fare", "in_progress": "In Corso", "done": "Fatto", "add_task": "Aggiungi Compito", "task_placeholder": "Nuovo Compito"},
+    "lv": {"todo": "Darāmais", "in_progress": "Procesā", "done": "Pabeigts", "add_task": "Pievienot Uzdevumu", "task_placeholder": "Jauns Uzdevums"},
+    "ko": {"todo": "할 일", "in_progress": "진행 중", "done": "완료", "add_task": "작업 추가", "task_placeholder": "새 작업"}
+}
+
+class KanbanApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Kanban Board")
+        
+        self.language = "fr"
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        self.columns = {}
+        frame = tk.Frame(self.root)
+        frame.pack(pady=10)
+        
+        self.create_column(frame, "todo")
+        self.create_column(frame, "in_progress")
+        self.create_column(frame, "done")
+        
+        self.lang_selector = ttk.Combobox(self.root, values=list(translations.keys()))
+        self.lang_selector.set(self.language)
+        self.lang_selector.pack()
+        self.lang_selector.bind("<<ComboboxSelected>>", self.change_language)
+        
+    def create_column(self, parent, key):
+        frame = tk.Frame(parent, padx=10, pady=10, relief=tk.RAISED, borderwidth=2)
+        frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        label = tk.Label(frame, text=translations[self.language][key], font=("Arial", 14, "bold"))
+        label.pack()
+        
+        listbox = tk.Listbox(frame, height=10)
+        listbox.pack()
+        
+        entry = tk.Entry(frame)
+        entry.pack()
+        entry.insert(0, translations[self.language]["task_placeholder"])
+        
+        button = tk.Button(frame, text=translations[self.language]["add_task"], command=lambda: self.add_task(listbox, entry))
+        button.pack()
+        
+        self.columns[key] = {"label": label, "listbox": listbox, "entry": entry, "button": button}
+    
+    def add_task(self, listbox, entry):
+        task = entry.get()
+        if task and task != translations[self.language]["task_placeholder"]:
+            listbox.insert(tk.END, task)
+            entry.delete(0, tk.END)
+    
+    def change_language(self, event):
+        self.language = self.lang_selector.get()
+        for key, elements in self.columns.items():
+            elements["label"].config(text=translations[self.language][key])
+            elements["button"].config(text=translations[self.language]["add_task"])
+            elements["entry"].delete(0, tk.END)
+            elements["entry"].insert(0, translations[self.language]["task_placeholder"])
+        
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = KanbanApp(root)
+    root.mainloop()
