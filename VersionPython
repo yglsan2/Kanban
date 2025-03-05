@@ -1,73 +1,220 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox, filedialog
+import json
 
-# Dictionnaire de traduction
+# Traductions pour plusieurs langues
 translations = {
-    "fr": {"todo": "À faire", "in_progress": "En cours", "done": "Terminé", "add_task": "Ajouter une tâche", "task_placeholder": "Nouvelle tâche"},
-    "en": {"todo": "To Do", "in_progress": "In Progress", "done": "Done", "add_task": "Add Task", "task_placeholder": "New Task"},
-    "de": {"todo": "Zu Erledigen", "in_progress": "In Bearbeitung", "done": "Erledigt", "add_task": "Aufgabe Hinzufügen", "task_placeholder": "Neue Aufgabe"},
-    "es": {"todo": "Por Hacer", "in_progress": "En Proceso", "done": "Hecho", "add_task": "Agregar Tarea", "task_placeholder": "Nueva Tarea"},
-    "it": {"todo": "Da Fare", "in_progress": "In Corso", "done": "Fatto", "add_task": "Aggiungi Compito", "task_placeholder": "Nuovo Compito"},
-    "lv": {"todo": "Darāmais", "in_progress": "Procesā", "done": "Pabeigts", "add_task": "Pievienot Uzdevumu", "task_placeholder": "Jauns Uzdevums"},
-    "ko": {"todo": "할 일", "in_progress": "진행 중", "done": "완료", "add_task": "작업 추가", "task_placeholder": "새 작업"}
+    "gb": {"title": "Kanban Board", "todo": "To Do", "inProgress": "In Progress", "done": "Done", 
+           "addTask": "Add Task", "export": "Export", "import": "Import", "language": "Language", 
+           "delete": "Delete", "confirmDelete": "Delete this task?", "priority": "Priority", 
+           "high": "High", "medium": "Medium", "low": "Low", "cancel": "Cancel", "save": "Save", 
+           "resetConfirm": "Reset all tasks?", "importError": "Invalid file format"},
+    "fr": {"title": "Tableau Kanban", "todo": "À Faire", "inProgress": "En Cours", "done": "Terminé",
+           "addTask": "Ajouter Tâche", "export": "Exporter", "import": "Importer", "language": "Langue",
+           "delete": "Supprimer", "confirmDelete": "Supprimer cette tâche ?", "priority": "Priorité",
+           "high": "Haute", "medium": "Moyenne", "low": "Basse", "cancel": "Annuler", "save": "Enregistrer",
+           "resetConfirm": "Réinitialiser toutes les tâches ?", "importError": "Format de fichier invalide"},
+ 
 }
+
+# Couleurs de priorité
+priority_colors = {
+    "high": "#f9e2e2",
+    "medium": "#fcf3cf",
+    "low": "#e8f6ee"
+}
+
+class DraggableTask(tk.Frame):
+    def __init__(self, master, text, priority, column, delete_callback):
+        super().__init__(master, bg=priority_colors[priority], bd=1, relief=tk.RAISED)
+        self.column = column
+        self.delete_callback = delete_callback
+        
+        self.task_content = tk.Label(self, text=text, bg=priority_colors[priority])
+        self.task_content.pack(side=tk.LEFT, padx=5)
+        
+        self.priority_label = tk.Label(self, text=translations['fr'][priority], 
+                                     bg=priority_colors[priority], font=('Arial', 8))
+        self.priority_label.pack(side=tk.LEFT, padx=5)
+        
+        self.delete_btn = tk.Label(self, text="×", fg="red", cursor="hand2")
+        self.delete_btn.pack(side=tk.RIGHT, padx=5)
+        self.delete_btn.bind("<Button-1>", self.delete_task)
+        
+        self.bind("<ButtonPress-1>", self.start_drag)
+        self.bind("<B1-Motion>", self.do_drag)
+        self.bind("<ButtonRelease-1>", self.stop_drag)
+
+    def start_drag(self, event):
+        self._drag_start_x = event.x
+        self._drag_start_y = event.y
+        self.lift()
+
+    def do_drag(self, event):
+        x = self.winfo_x() + (event.x - self._drag_start_x)
+        y = self.winfo_y() + (event.y - self._drag_start_y)
+        self.place(x=x, y=y)
+
+    def stop_drag(self, event):
+        new_column = self.get_new_column(event.x_root, event.y_root)
+        if new_column and new_column != self.column:
+            self.master.move_task(self, new_column)
+        self.place_forget()
+        self.master.update_tasks()
+
+    def get_new_column(self, x, y):
+        for col in self.master.master.columns.values():
+            if col.winfo_containing(x, y) == col:
+                return col.id
+        return None
+
+    def delete_task(self, event=None):
+        if messagebox.askyesno(translations[self.master.master.lang]["confirmDelete"], 
+                             translations[self.master.master.lang]["confirmDelete"]):
+            self.destroy()
+            self.delete_callback()
+
+class KanbanColumn(tk.Canvas):
+    def __init__(self, master, id, title):
+        super().__init__(master, width=250, height=400, bg='#ecf0f1', bd=0, highlightthickness=0)
+        self.id = id
+        self.title = title
+        self.tasks = []
+        
+        self.header = tk.Frame(self, bg='#2c3e50')
+        self.title_label = tk.Label(self.header, text=title, fg='white', bg='#2c3e50')
+        self.add_btn = tk.Button(self.header, text="+", command=self.add_task_dialog)
+        
+        self.header.pack(fill=tk.X)
+        self.title_label.pack(side=tk.LEFT, padx=5)
+        self.add_btn.pack(side=tk.RIGHT, padx=5)
+        
+        self.create_window(0, 0, window=self.header, anchor=tk.NW, width=250)
+        self.scrollable_frame = tk.Frame(self)
+        self.create_window(0, 30, window=self.scrollable_frame, anchor=tk.NW)
+        
+        self.bind("<Configure>", self.on_configure)
+
+    def on_configure(self, event):
+        self.configure(scrollregion=self.bbox("all"))
+
+    def add_task(self, text, priority):
+        task = DraggableTask(self.scrollable_frame, text, priority, self.id, 
+                           lambda: self.remove_task(task))
+        task.pack(fill=tk.X, pady=2)
+        self.tasks.append(task)
+        self.update_tasks()
+
+    def move_task(self, task, new_column):
+        self.tasks.remove(task)
+        self.master.columns[new_column].add_task(task.task_content.cget("text"), 
+                                               task.priority_label.cget("text").lower())
+        task.destroy()
+        self.master.save_state()
+
+    def update_tasks(self):
+        for i, task in enumerate(self.tasks):
+            task.pack_forget()
+        for task in self.tasks:
+            task.pack(fill=tk.X, pady=2)
 
 class KanbanApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Kanban Board")
-        
-        self.language = "fr"
-        
+        self.lang = "fr"
         self.setup_ui()
+        self.load_state()
         
     def setup_ui(self):
-        self.columns = {}
-        frame = tk.Frame(self.root)
-        frame.pack(pady=10)
+        self.root.title(translations[self.lang]["title"])
+        self.root.geometry("800x500")
         
-        self.create_column(frame, "todo")
-        self.create_column(frame, "in_progress")
-        self.create_column(frame, "done")
+        # Contrôles supérieurs
+        self.control_frame = tk.Frame(self.root)
+        self.control_frame.pack(fill=tk.X)
         
-        self.lang_selector = ttk.Combobox(self.root, values=list(translations.keys()))
-        self.lang_selector.set(self.language)
-        self.lang_selector.pack()
+        self.lang_selector = ttk.Combobox(self.control_frame, values=list(translations.keys()))
+        self.lang_selector.set(self.lang)
+        self.lang_selector.pack(side=tk.LEFT, padx=5)
         self.lang_selector.bind("<<ComboboxSelected>>", self.change_language)
         
-    def create_column(self, parent, key):
-        frame = tk.Frame(parent, padx=10, pady=10, relief=tk.RAISED, borderwidth=2)
-        frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.export_btn = tk.Button(self.control_frame, text=translations[self.lang]["export"],
+                                   command=self.export_tasks)
+        self.export_btn.pack(side=tk.LEFT, padx=5)
         
-        label = tk.Label(frame, text=translations[self.language][key], font=("Arial", 14, "bold"))
-        label.pack()
+        self.import_btn = tk.Button(self.control_frame, text=translations[self.lang]["import"],
+                                   command=self.import_tasks)
+        self.import_btn.pack(side=tk.LEFT, padx=5)
         
-        listbox = tk.Listbox(frame, height=10)
-        listbox.pack()
+        # Colonnes
+        self.columns_frame = tk.Frame(self.root)
+        self.columns_frame.pack(fill=tk.BOTH, expand=True)
         
-        entry = tk.Entry(frame)
-        entry.pack()
-        entry.insert(0, translations[self.language]["task_placeholder"])
+        self.columns = {
+            "todo": KanbanColumn(self.columns_frame, "todo", translations[self.lang]["todo"]),
+            "inProgress": KanbanColumn(self.columns_frame, "inProgress", translations[self.lang]["inProgress"]),
+            "done": KanbanColumn(self.columns_frame, "done", translations[self.lang]["done"])
+        }
         
-        button = tk.Button(frame, text=translations[self.language]["add_task"], command=lambda: self.add_task(listbox, entry))
-        button.pack()
+        for i, col in enumerate(self.columns.values()):
+            col.grid(row=0, column=i, padx=5, pady=5, sticky=tk.NSEW)
         
-        self.columns[key] = {"label": label, "listbox": listbox, "entry": entry, "button": button}
-    
-    def add_task(self, listbox, entry):
-        task = entry.get()
-        if task and task != translations[self.language]["task_placeholder"]:
-            listbox.insert(tk.END, task)
-            entry.delete(0, tk.END)
-    
+        self.columns_frame.grid_columnconfigure(0, weight=1)
+        self.columns_frame.grid_columnconfigure(1, weight=1)
+        self.columns_frame.grid_columnconfigure(2, weight=1)
+        
     def change_language(self, event):
-        self.language = self.lang_selector.get()
-        for key, elements in self.columns.items():
-            elements["label"].config(text=translations[self.language][key])
-            elements["button"].config(text=translations[self.language]["add_task"])
-            elements["entry"].delete(0, tk.END)
-            elements["entry"].insert(0, translations[self.language]["task_placeholder"])
+        self.lang = self.lang_selector.get()
+        self.update_ui_language()
+
+    def update_ui_language(self):
+        self.root.title(translations[self.lang]["title"])
+        for col in self.columns.values():
+            col.title_label.config(text=translations[self.lang][col.id])
+        self.export_btn.config(text=translations[self.lang]["export"])
+        self.import_btn.config(text=translations[self.lang]["import"])
+        self.lang_selector.set(self.lang)
+
+    def add_task_dialog(self):
+        # Implémenter la boîte de dialogue d'ajout
+        pass
         
+    def save_state(self):
+        tasks = []
+        for col in self.columns.values():
+            tasks.extend([{
+                "text": task.task_content.cget("text"),
+                "priority": task.priority_label.cget("text").lower(),
+                "column": col.id
+            } for task in col.tasks])
+        with open("kanban_state.json", "w") as f:
+            json.dump(tasks, f)
+            
+    def load_state(self):
+        try:
+            with open("kanban_state.json", "r") as f:
+                tasks = json.load(f)
+                for task in tasks:
+                    self.columns[task["column"]].add_task(task["text"], task["priority"])
+        except FileNotFoundError:
+            pass
+            
+    def export_tasks(self):
+        file = filedialog.asksaveasfilename(defaultextension=".json")
+        if file:
+            self.save_state()
+            
+    def import_tasks(self):
+        file = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+        if file:
+            try:
+                with open(file, "r") as f:
+                    tasks = json.load(f)
+                    for task in tasks:
+                        self.columns[task["column"]].add_task(task["text"], task["priority"])
+            except json.JSONDecodeError:
+                messagebox.showerror(translations[self.lang]["importError"])
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = KanbanApp(root)
